@@ -63,19 +63,19 @@ public class MainActivity extends AppCompatActivity {
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
                 case 0:
-                    tab.setText("Peito/\nBíceps");
+                    tab.setText("Peito\nBíceps");
                     break;
                 case 1:
-                    tab.setText("Inferiores 1");
+                    tab.setText("Leg Day\n1");
                     break;
                 case 2:
-                    tab.setText("Costa/Tríceps");
+                    tab.setText("Costa\nTríceps");
                     break;
                 case 3:
-                    tab.setText("Inferiores 2");
+                    tab.setText("Leg Day\n2");
                     break;
                 case 4:
-                    tab.setText("Ombro/\nAntBrç");
+                    tab.setText("Ombro\nAntBrç");
                     break;
             }
         }).attach();

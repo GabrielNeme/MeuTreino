@@ -9,6 +9,12 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.text.InputType;
+import android.widget.EditText;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,6 +25,7 @@ import java.util.List;
 
 public class WorkoutFragment extends Fragment {
     private static final String ARG_SECTION = "section_number";
+    private static final String PREFS_NAME = "WorkoutNotes";
 
     public static WorkoutFragment newInstance(int sectionNumber) {
         WorkoutFragment fragment = new WorkoutFragment();
@@ -51,45 +58,99 @@ public class WorkoutFragment extends Fragment {
         LinearLayout itemLayout = new LinearLayout(getContext());
         itemLayout.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        itemLayout.setOrientation(LinearLayout.HORIZONTAL);
-        itemLayout.setGravity(Gravity.CENTER_VERTICAL);
-        itemLayout.setBackgroundColor(Color.WHITE);
+        itemLayout.setOrientation(LinearLayout.VERTICAL);
         itemLayout.setPadding(20, 20, 20, 20);
+        itemLayout.setBackgroundColor(Color.WHITE);
+
+        // Layout horizontal: texto + botões
+        LinearLayout contentLayout = new LinearLayout(getContext());
+        contentLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        contentLayout.setOrientation(LinearLayout.HORIZONTAL);
+        contentLayout.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView textView = new TextView(getContext());
         textView.setText(workout);
         textView.setTextColor(Color.DKGRAY);
         textView.setTextSize(20);
-        textView.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        itemLayout.addView(textView);
+        textView.setLayoutParams(new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)); // ocupa o espaço restante
+        contentLayout.addView(textView);
 
+        // Observações salvas
+        TextView noteView = new TextView(getContext());
+        noteView.setTextColor(Color.GRAY);
+        noteView.setTextSize(14);
+        noteView.setPadding(0, 8, 0, 0);
+
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String savedNote = prefs.getString(workout, "");
+        itemLayout.addView(contentLayout);
+
+        if (!savedNote.isEmpty()) {
+            noteView.setText("Obs: " + savedNote);
+            itemLayout.addView(noteView);
+        }
+
+        // Clique longo para adicionar observação
+        itemLayout.setOnLongClickListener(v -> {
+            EditText input = new EditText(getContext());
+            input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+            input.setHint("Digite sua observação");
+            input.setText(savedNote);
+
+            new AlertDialog.Builder(getContext())
+                    .setTitle("Observação")
+                    .setMessage("Adicione uma observação para este exercício:")
+                    .setView(input)
+                    .setPositiveButton("Salvar", (dialog, which) -> {
+                        String note = input.getText().toString().trim();
+                        prefs.edit().putString(workout, note).apply();
+                        if (!note.isEmpty()) {
+                            noteView.setText("Obs: " + note);
+                            if (noteView.getParent() == null)
+                                itemLayout.addView(noteView);
+                        } else {
+                            itemLayout.removeView(noteView);
+                        }
+                        Toast.makeText(getContext(), "Observação salva", Toast.LENGTH_SHORT).show();
+                    })
+                    .setNegativeButton("Cancelar", null)
+                    .show();
+            return true;
+        });
+
+        // Botões
         if (workout.contains("ESTEIRA") || workout.contains("ABDOMÊN")) {
             Button completeButton = createCompleteButton(itemLayout, textView);
-            itemLayout.addView(completeButton);
+            contentLayout.addView(completeButton);
         } else {
-            itemLayout.addView(createButtonLayout(itemLayout, textView));
+            int seriesCount = extractSeriesCount(workout);
+            LinearLayout buttonsLayout = createButtonLayout(itemLayout, textView, seriesCount);
+            contentLayout.addView(buttonsLayout);
         }
+
         return itemLayout;
     }
 
-    private LinearLayout createButtonLayout(LinearLayout itemLayout, TextView textView) {
+    private LinearLayout createButtonLayout(LinearLayout itemLayout, TextView textView, int seriesCount) {
         LinearLayout buttonsLayout = new LinearLayout(getContext());
         buttonsLayout.setOrientation(LinearLayout.HORIZONTAL);
         buttonsLayout.setGravity(Gravity.CENTER);
 
-        for (int i = 0; i < 4; i++) {
-            Button numberButton = createNumberButton(i, buttonsLayout, itemLayout, textView);
+        for (int i = 0; i < seriesCount; i++) {
+            Button numberButton = createNumberButton(i, buttonsLayout, itemLayout, textView, seriesCount);
             buttonsLayout.addView(numberButton);
         }
         return buttonsLayout;
     }
 
-    private Button createNumberButton(int index, LinearLayout buttonsLayout, LinearLayout itemLayout, TextView textView) {
+    private Button createNumberButton(int index, LinearLayout buttonsLayout, LinearLayout itemLayout, TextView textView, int seriesCount) {
         Button numberButton = new Button(getContext());
         numberButton.setText(String.valueOf(index + 1));
 
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(85, 85);
-        params.setMargins(8, 0, 8, 0); // (left, top, right, bottom)
+        params.setMargins(8, 0, 8, 0);
 
         numberButton.setLayoutParams(params);
         numberButton.setTextSize(12);
@@ -98,11 +159,11 @@ public class WorkoutFragment extends Fragment {
         numberButton.setEnabled(index == 0);
 
         numberButton.setOnClickListener(v -> {
-            numberButton.setBackgroundColor(Color.rgb(51, 176, 0)); // Verde #229A00
+            numberButton.setBackgroundColor(Color.rgb(51, 176, 0));
             numberButton.setTextColor(Color.WHITE);
             numberButton.setEnabled(false);
 
-            if (index == 3) {
+            if (index == seriesCount - 1) {
                 buttonsLayout.setVisibility(View.GONE);
                 itemLayout.setBackgroundColor(Color.rgb(51, 176, 0));
                 textView.setTextColor(Color.WHITE);
@@ -113,7 +174,6 @@ public class WorkoutFragment extends Fragment {
 
         return numberButton;
     }
-
 
     private Button createCompleteButton(LinearLayout itemLayout, TextView textView) {
         Button completeButton = new Button(getContext());
@@ -128,6 +188,22 @@ public class WorkoutFragment extends Fragment {
             itemLayout.removeView(completeButton);
         });
         return completeButton;
+    }
+
+    private int extractSeriesCount(String workout) {
+        String[] parts = workout.split("\\(");
+        if (parts.length > 1) {
+            String insideParentheses = parts[1].replace(")", "");
+            if (insideParentheses.contains("x")) {
+                String[] seriesReps = insideParentheses.split("x");
+                try {
+                    return Integer.parseInt(seriesReps[0].trim());
+                } catch (NumberFormatException e) {
+                    return 4; // padrão
+                }
+            }
+        }
+        return 4; // padrão caso não seja possível identificar
     }
 
     private List<String> getWorkoutList(int section) {
