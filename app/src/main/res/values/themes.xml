@@ -10,4 +10,14 @@
     <style name="Theme.Meutreino.Light" parent="Theme.MaterialComponents.Light">
         <!-- Mantém o fundo branco fixo -->
     </style>
+
+    <!-- ALERTA COM BORDA ARREDONDADA -->
+    <style name="RoundedAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="shapeAppearanceMediumComponent">@style/RoundedCorners</item>
+    </style>
+
+    <style name="RoundedCorners">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">24dp</item>
+    </style>
 </resources>

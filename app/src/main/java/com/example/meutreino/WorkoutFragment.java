@@ -1,7 +1,12 @@
 package com.example.meutreino;
 
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StyleSpan;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -62,7 +67,6 @@ public class WorkoutFragment extends Fragment {
         itemLayout.setPadding(20, 20, 20, 20);
         itemLayout.setBackgroundColor(Color.WHITE);
 
-        // Layout horizontal: texto + botões
         LinearLayout contentLayout = new LinearLayout(getContext());
         contentLayout.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -74,10 +78,9 @@ public class WorkoutFragment extends Fragment {
         textView.setTextColor(Color.DKGRAY);
         textView.setTextSize(20);
         textView.setLayoutParams(new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)); // ocupa o espaço restante
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         contentLayout.addView(textView);
 
-        // Observações salvas
         TextView noteView = new TextView(getContext());
         noteView.setTextColor(Color.GRAY);
         noteView.setTextSize(14);
@@ -92,37 +95,61 @@ public class WorkoutFragment extends Fragment {
             itemLayout.addView(noteView);
         }
 
-        // Clique longo para adicionar observação
         itemLayout.setOnLongClickListener(v -> {
-            EditText input = new EditText(getContext());
+            View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_observacao, null);
+            EditText input = dialogView.findViewById(R.id.inputNote);
             input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
             input.setHint("Digite sua observação");
             input.setText(savedNote);
+            input.setPadding(40, 30, 40, 30);
+            input.setBackgroundResource(R.drawable.edittext_background); // sem borda verde agora
 
-            new AlertDialog.Builder(getContext())
-                    .setTitle("Observação")
-                    .setMessage("Adicione uma observação para este exercício:")
-                    .setView(input)
-                    .setPositiveButton("Salvar", (dialog, which) -> {
-                        String note = input.getText().toString().trim();
-                        prefs.edit().putString(workout, note).apply();
-                        if (!note.isEmpty()) {
-                            noteView.setText("Obs: " + note);
-                            if (noteView.getParent() == null)
-                                itemLayout.addView(noteView);
-                        } else {
-                            itemLayout.removeView(noteView);
-                        }
-                        Toast.makeText(getContext(), "Observação salva", Toast.LENGTH_SHORT).show();
-                    })
-                    .setNegativeButton("Cancelar", null)
-                    .show();
+            // Título vermelho, negrito, maior
+            SpannableString title = new SpannableString("Observação");
+            title.setSpan(new ForegroundColorSpan(Color.RED), 0, title.length(), 0);
+            title.setSpan(new StyleSpan(Typeface.BOLD), 0, title.length(), 0);
+            title.setSpan(new RelativeSizeSpan(1.3f), 0, title.length(), 0);
+
+            // Mensagem secundária com cor escura
+            SpannableString message = new SpannableString("Adicione uma observação para este exercício:");
+            message.setSpan(new ForegroundColorSpan(Color.DKGRAY), 0, message.length(), 0);
+            message.setSpan(new RelativeSizeSpan(1.1f), 0, message.length(), 0);
+
+            AlertDialog dialog = new AlertDialog.Builder(getContext())
+                    .setView(dialogView)
+                    .setPositiveButton("SALVAR", null)
+                    .setNegativeButton("CANCELAR", null)
+                    .create();
+
+            dialog.setOnShowListener(d -> {
+                Button saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+
+                saveButton.setTextColor(Color.rgb(51, 176, 0)); // verde
+                cancelButton.setTextColor(Color.RED); // vermelho
+
+                saveButton.setOnClickListener(btn -> {
+                    String note = input.getText().toString().trim();
+                    prefs.edit().putString(workout, note).apply();
+                    if (!note.isEmpty()) {
+                        noteView.setText("Obs: " + note);
+                        if (noteView.getParent() == null)
+                            itemLayout.addView(noteView);
+                    } else {
+                        itemLayout.removeView(noteView);
+                    }
+                    Toast.makeText(getContext(), "Observação salva", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                });
+            });
+
+            dialog.show();
             return true;
         });
 
-        // Botões
+
         if (workout.contains("ESTEIRA") || workout.contains("ABDOMÊN")) {
-            Button completeButton = createCompleteButton(itemLayout, textView);
+            Button completeButton = createCompleteButton(itemLayout, textView, contentLayout);
             contentLayout.addView(completeButton);
         } else {
             int seriesCount = extractSeriesCount(workout);
@@ -175,7 +202,7 @@ public class WorkoutFragment extends Fragment {
         return numberButton;
     }
 
-    private Button createCompleteButton(LinearLayout itemLayout, TextView textView) {
+    private Button createCompleteButton(LinearLayout itemLayout, TextView textView, LinearLayout contentLayout) {
         Button completeButton = new Button(getContext());
         completeButton.setText("✔");
         completeButton.setTextSize(17);
@@ -185,8 +212,9 @@ public class WorkoutFragment extends Fragment {
         completeButton.setOnClickListener(v -> {
             itemLayout.setBackgroundColor(Color.rgb(51, 176, 0));
             textView.setTextColor(Color.WHITE);
-            itemLayout.removeView(completeButton);
+            contentLayout.removeView(completeButton); // Correção aqui
         });
+
         return completeButton;
     }
 
@@ -199,11 +227,11 @@ public class WorkoutFragment extends Fragment {
                 try {
                     return Integer.parseInt(seriesReps[0].trim());
                 } catch (NumberFormatException e) {
-                    return 4; // padrão
+                    return 4;
                 }
             }
         }
-        return 4; // padrão caso não seja possível identificar
+        return 4;
     }
 
     private List<String> getWorkoutList(int section) {
@@ -243,9 +271,9 @@ public class WorkoutFragment extends Fragment {
             case 3:
                 workouts.add("ELEVAÇÃO PÉLVICA \n(4x12)");
                 workouts.add("CADEIRA ABDUTORA \n(4x15)");
-                workouts.add("AGACHAMENTO SMITH\n \n(4x12)");
+                workouts.add("AGACHAMENTO SMITH \n(4x12)");
                 workouts.add("CADEIRA FLEXORA \n(4x12+10+8+6)");
-                workouts.add("AGACHAMENTO SUMÔ\n \n(4x10)");
+                workouts.add("AGACHAMENTO SUMÔ \n(4x10)");
                 workouts.add("PANTURRILHA MÁQUINA \n(4x12)");
                 workouts.add("ABDOMÊN");
                 break;
