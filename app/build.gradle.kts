@@ -39,7 +39,10 @@ dependencies {
     implementation(libs.constraintlayout)
 
     // Dependências do RecyclerView
-    implementation("androidx.recyclerview:recyclerview:1.2.1") // Adicionada a dependência do RecyclerView
+    implementation("androidx.recyclerview:recyclerview:1.2.1")
+
+    implementation("com.google.android.material:material:1.9.0")
+
 
     // Dependências do Room (Banco de dados)
     implementation(libs.room.common)

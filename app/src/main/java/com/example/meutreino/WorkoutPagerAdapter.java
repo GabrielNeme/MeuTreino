@@ -18,6 +18,8 @@ public class WorkoutPagerAdapter extends FragmentStateAdapter {
 
     @Override
     public int getItemCount() {
-        return 4; // Número de abas
+        return 5; // Número de abas
     }
 }
+
+
